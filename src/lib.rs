@@ -1,11 +1,16 @@
 use leptos::*;
+use leptos_hotkeys::{provide_hotkeys_context, scopes};
 use leptos_meta::*;
 use leptos_router::*;
 
 // Modules
 mod components;
 mod pages;
+mod types;
+mod data;
+mod viewstate;
 
+use crate::data::provide_timeline_context;
 // Top-Level pages
 use crate::pages::home::Home;
 use crate::pages::not_found::NotFound;
@@ -15,6 +20,9 @@ use crate::pages::not_found::NotFound;
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+    let main_ref = create_node_ref::<html::Main>();
+    provide_hotkeys_context(main_ref, false, scopes!());
+    provide_timeline_context();
 
     view! {
         <Html lang="en" dir="ltr" attr:data-theme="light"/>
@@ -26,11 +34,14 @@ pub fn App() -> impl IntoView {
         <Meta charset="UTF-8"/>
         <Meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-        <Router>
-            <Routes>
-                <Route path="/" view=Home/>
-                <Route path="/*" view=NotFound/>
-            </Routes>
-        </Router>
+        <main _ref=main_ref>
+            <Router>
+                <Routes>
+                    <Route path="/" view=Home/>
+                    <Route path="/*" view=NotFound/>
+                </Routes>
+            </Router>
+        </main>
     }
 }
+
