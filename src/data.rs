@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use chrono::{Local, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
 use leptos::{
-    create_rw_signal, expect_context, provide_context, Callback, MaybeSignal, RwSignal, Signal,
-    SignalGet, SignalUpdate, SignalWith, SignalWithUntracked,
+    create_rw_signal, expect_context, provide_context, with_current_owner, Callback, MaybeSignal,
+    RwSignal, Signal, SignalGet, SignalUpdate, SignalWith, SignalWithUntracked,
 };
 
 use crate::types::{
@@ -65,17 +65,8 @@ pub fn provide_timeline_context() {
     let begins = Signal::derive(move || pois.with(|p| p.values().map(|o| o.begins()).min())); // Kan vara tom pga inga inlagda saker än
     let today = Local::now().date_naive();
     let span = Signal::derive(move || begins.get().map_or(TimeDelta::zero(), |e| today - e));
-    let add_poi = Callback::new(move |p: NonSignalPointOfInterest| {
-        let p: PointOfInterest = p.into();
-        pois.update(|ps| {
-            ps.insert(p.identity(), p);
-        });
-        cats.with_untracked(|c| {
-            let cat = c.get(&p.parent()).unwrap();
-            cat.points_of_interest
-                .update(|pois| pois.push(p.identity()));
-        });
-    });
+    let add_poi = create_callback_for_adding_poi(pois, cats);
+
 
     let ctx = TimelineContext {
         pois,
@@ -85,6 +76,24 @@ pub fn provide_timeline_context() {
         begins,
     };
     provide_context(ctx);
+}
+
+fn create_callback_for_adding_poi(
+    pois: RwSignal<HashMap<Identifier, PointOfInterest>>,
+    cats: RwSignal<IndexMap<Identifier, ByMainCategory>>,
+) -> Callback<NonSignalPointOfInterest> {
+    let add_poi = move |p: NonSignalPointOfInterest| {
+        let p: PointOfInterest = p.into();
+        pois.update(|ps| {
+            ps.insert(p.identity(), p);
+        });
+        cats.with_untracked(|c| {
+            let cat = c.get(&p.parent()).unwrap();
+            cat.points_of_interest
+                .update(|pois| pois.push(p.identity()));
+        });
+    };
+    Callback::new(with_current_owner(add_poi))
 }
 
 pub fn expect_timeline_context() -> TimelineContext {
