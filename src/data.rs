@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{Local, NaiveDate, TimeDelta};
+use indexmap::IndexMap;
 use leptos::{
     create_rw_signal, expect_context, provide_context, Callback, MaybeSignal, RwSignal, Signal,
     SignalGet, SignalUpdate, SignalWith, SignalWithUntracked,
@@ -14,7 +15,7 @@ use crate::types::{
 #[derive(Clone)]
 pub struct TimelineContext {
     pub pois: RwSignal<HashMap<Identifier, PointOfInterest>>,
-    pub cats: RwSignal<HashMap<Identifier, ByMainCategory>>,
+    pub cats: RwSignal<IndexMap<Identifier, ByMainCategory>>,
     pub add_poi: Callback<NonSignalPointOfInterest>,
     pub span: Signal<TimeDelta>,
     pub begins: Signal<Option<NaiveDate>>,
@@ -93,8 +94,8 @@ pub fn expect_timeline_context() -> TimelineContext {
 fn arrange_by_category(
     starting_categories: Vec<MainCategory>,
     pois: &Vec<&PointOfInterest>,
-) -> RwSignal<HashMap<Identifier, ByMainCategory>> {
-    create_rw_signal::<HashMap<Identifier, ByMainCategory>>(HashMap::from_iter(
+) -> RwSignal<IndexMap<Identifier, ByMainCategory>> {
+    create_rw_signal::<IndexMap<Identifier, ByMainCategory>>(IndexMap::from_iter(
         starting_categories.into_iter().map(|category| {
             let id = category.identity();
             (
