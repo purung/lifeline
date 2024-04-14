@@ -45,10 +45,7 @@ impl ByMainCategory {
 // TODO ägare av lifeline och vad som räknas som år noll
 // TODO flera projekt
 // Kolla upp en persons tidslinje och vice versa
-// Hur lång är hela tidslinjen?
-// Lägga in noderef någonstans
 // Lägga en särskild färg på varje kategori
-// TODO använd indexmap för kategorier
 // TODO integrera indicium
 
 pub fn provide_timeline_context() {
