@@ -1,7 +1,7 @@
 use leptos::{
-    create_node_ref, create_rw_signal, create_signal, expect_context, html::ElementDescriptor, provide_context, watch, with, NodeRef, ReadSignal, RwSignal, Signal, SignalGet
+    create_rw_signal, expect_context, html::ElementDescriptor, provide_context, with, NodeRef, RwSignal, Signal
 };
-use leptos_use::{core::ElementMaybeSignal, use_css_var, use_element_size, UseElementSizeReturn};
+use leptos_use::{use_element_size, UseElementSizeReturn};
 
 use crate::{
     data::{expect_timeline_context, TimelineContext},

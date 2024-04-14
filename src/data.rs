@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{Local, NaiveDate, TimeDelta};
 use indexmap::IndexMap;
+use indicium::simple::{SearchIndex, SearchIndexBuilder};
 use leptos::{
     create_rw_signal, expect_context, provide_context, with_current_owner, Callback, MaybeSignal,
     RwSignal, Signal, SignalGet, SignalUpdate, SignalWith, SignalWithUntracked,
@@ -14,11 +15,55 @@ use crate::types::{
 
 #[derive(Clone)]
 pub struct TimelineContext {
-    pub pois: RwSignal<HashMap<Identifier, PointOfInterest>>,
+    pub pois: RwSignal<PoIs>,
     pub cats: RwSignal<IndexMap<Identifier, ByMainCategory>>,
     pub add_poi: Callback<NonSignalPointOfInterest>,
     pub span: Signal<TimeDelta>,
     pub begins: Signal<Option<NaiveDate>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PoIs {
+    pois: HashMap<Identifier, PointOfInterest>,
+    search: SearchIndex<Identifier>,
+}
+
+impl PoIs {
+    fn from_poi_collection(pois: HashMap<Identifier, PointOfInterest>) -> Self {
+        let mut search = SearchIndexBuilder::default()
+            .autocomplete_type(indicium::simple::AutocompleteType::Context)
+            .exclude_keywords(None)
+            .build();
+        pois.iter().for_each(|(k, v)| search.insert(k, v));
+        Self { pois, search }
+    }
+
+    fn insert(&mut self, poi: PointOfInterest) {
+        self.search.insert(&poi.identity(), &poi);
+        self.pois.insert(poi.identity(), poi);
+    }
+    pub fn keys(&self) -> std::iter::Copied<std::collections::hash_map::Keys<'_, Identifier, PointOfInterest>> {
+        self.pois.keys().copied()
+    }
+    pub fn search(&self, term: &str) -> Vec<Identifier> {
+        self.search.search(term).into_iter().copied().collect()
+    }
+    pub fn autocomplete(&self, term: &str) -> Vec<String> {
+        self.search.autocomplete(term)
+    }
+    pub fn get(&self, id: &Identifier) -> Option<&PointOfInterest> {
+        self.pois.get(id)
+    }
+}
+
+impl HasBeginning for PoIs {
+    fn begins(&self) -> NaiveDate {
+        self.pois.values().map(|o| o.begins()).min().unwrap()
+    }
+
+    fn try_begins(&self) -> Option<NaiveDate> {
+        self.pois.values().map(|o| o.begins()).min()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -58,12 +103,12 @@ pub fn provide_timeline_context() {
     let pois = init_example_pois(&starting_categories, &timeline);
 
     let cats = arrange_by_category(starting_categories, &pois.values().collect::<Vec<_>>());
-    let pois = create_rw_signal(pois);
-    let begins = Signal::derive(move || pois.with(|p| p.values().map(|o| o.begins()).min())); // Kan vara tom pga inga inlagda saker än
+
+    let pois = create_rw_signal(PoIs::from_poi_collection(pois));
+    let add_poi = create_callback_for_adding_poi(pois, cats);
+    let begins = Signal::derive(move || pois.with(|p| p.try_begins())); // Kan vara tom pga inga inlagda saker än
     let today = Local::now().date_naive();
     let span = Signal::derive(move || begins.get().map_or(TimeDelta::zero(), |e| today - e));
-    let add_poi = create_callback_for_adding_poi(pois, cats);
-
 
     let ctx = TimelineContext {
         pois,
@@ -76,13 +121,13 @@ pub fn provide_timeline_context() {
 }
 
 fn create_callback_for_adding_poi(
-    pois: RwSignal<HashMap<Identifier, PointOfInterest>>,
+    pois: RwSignal<PoIs>,
     cats: RwSignal<IndexMap<Identifier, ByMainCategory>>,
 ) -> Callback<NonSignalPointOfInterest> {
     let add_poi = move |p: NonSignalPointOfInterest| {
         let p: PointOfInterest = p.into();
         pois.update(|ps| {
-            ps.insert(p.identity(), p);
+            ps.insert(p);
         });
         cats.with_untracked(|c| {
             let cat = c.get(&p.parent()).unwrap();

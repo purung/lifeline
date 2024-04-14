@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use chrono::{NaiveDate, NaiveDateTime, TimeDelta};
+use indicium::simple::Indexable;
 use leptos::{MaybeSignal, RwSignal, SignalGet};
 use uuid::Uuid;
 
@@ -86,10 +87,20 @@ impl HasBeginning for PointOfInterest {
     fn begins(&self) -> NaiveDate {
         self.starts.get().begins()
     }
+
+    fn try_begins(&self) -> Option<NaiveDate> {
+        Some(self.begins())
+    }
 }
 impl MyName for PointOfInterest {
     fn name(&self) -> MaybeSignal<String> {
         self.name.into()
+    }
+}
+
+impl Indexable for PointOfInterest {
+    fn strings(&self) -> Vec<String> {
+        vec![self.name.get()]
     }
 }
 
@@ -101,6 +112,9 @@ pub trait LevelUp {
 
 pub trait HasBeginning {
     fn begins(&self) -> NaiveDate;
+    fn try_begins(&self) -> Option<NaiveDate> {
+        Some(self.begins())
+    }
 }
 
 pub trait MyName {
@@ -165,6 +179,10 @@ impl HasBeginning for PointInTime {
             PointInTime::Undetermined => todo!(),
             _ => unreachable!(),
         }
+    }
+
+    fn try_begins(&self) -> Option<NaiveDate> {
+        Some(self.begins())
     }
 }
 
@@ -246,7 +264,7 @@ impl From<u8> for Month {
 
 //
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Identifier(Uuid);
 
 impl Default for Identifier {

@@ -4,12 +4,7 @@ use std::{
 };
 
 use enum_dispatch::enum_dispatch;
-use leptos::{
-    html::{Div, ToHtmlElement},
-    leptos_dom::logging,
-    logging::log,
-    *,
-};
+use leptos::{html::Div, logging::log, *};
 use leptos_hotkeys::{use_hotkeys, use_hotkeys_context, HotkeysContext};
 use rand::seq::IteratorRandom;
 use uuid::Uuid;
@@ -42,15 +37,56 @@ pub fn Home() -> impl IntoView {
         })
     });
     use_hotkeys!(("ctrl+u") => move |_| {
-        add_poi.call(NonSignalPointOfInterest::new(a_cat.to_owned(), "Korfbajs".to_string()))
+        add_poi(NonSignalPointOfInterest::new(a_cat.to_owned(), "Korfbajs".to_string()))
     });
     provide_context(input_queue);
     view! {
         <div class="min-h-[100svh] bg-sky-50 grid">
             <Timeline/>
+            <SearchPoi/>
             <Commands/>
             <Modals/>
         </div>
+    }
+}
+
+#[component]
+pub fn SearchPoi() -> impl IntoView {
+    let TimelineContext { pois, .. } = expect_timeline_context();
+    let (term, term_w) = create_signal("".to_string());
+    let autocomplete = Signal::derive(move || with!(|pois, term| pois.autocomplete(term)));
+    let search = Signal::derive(move || with!(|pois, term| pois.search(term)));
+    let id = Uuid::new_v4();
+    let handle_input = move |t| term_w(event_target_value(&t));
+    let search_results = Signal::derive(move || {
+        search.with(|s| {
+            s.into_iter()
+                .map(|f| view! { <li>{f.to_string()}</li> })
+                .collect_view()
+        })
+    });
+
+    let auto_results = Signal::derive(move || {
+        autocomplete.with(|s| {
+            s.into_iter()
+                .map(|f| view! { <li>{f.to_string()}</li> })
+                .collect_view()
+        })
+    });
+    view! {
+        <Portal>
+            <Dialog id>
+                <div>
+                    <input on:input=handle_input/>
+                </div>
+                <div>
+                    <ol>{search_results}</ol>
+                </div>
+                <div>
+                    <ol>{auto_results}</ol>
+                </div>
+            </Dialog>
+        </Portal>
     }
 }
 
@@ -86,7 +122,7 @@ pub fn Timeline() -> impl IntoView {
         current_w(
             pois.with(|p| {
                 let mut rng = rand::thread_rng();
-                p.keys().copied().choose(&mut rng)
+                p.keys().choose(&mut rng)
             })
             .clone()
             .unwrap(),
