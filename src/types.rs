@@ -44,7 +44,12 @@ impl PointOfInterest {
         }
     }
 
-    pub fn new_bare_with_start(parent: Identifier, timeline: Identifier, name: String, starts: PointInTime) -> Self {
+    pub fn new_bare_with_start(
+        parent: Identifier,
+        timeline: Identifier,
+        name: String,
+        starts: PointInTime,
+    ) -> Self {
         Self {
             parent,
             timeline,
@@ -62,7 +67,7 @@ impl PointOfInterest {
     // fn connected<T>;
 }
 
-// TODO 
+// TODO
 // pub enum Relevance {}
 
 impl LevelUp for PointOfInterest {
@@ -93,15 +98,15 @@ impl MyName for PointOfInterest {
 pub trait LevelUp {
     fn parent(&self) -> Identifier;
 }
-     
+
 pub trait HasBeginning {
     fn begins(&self) -> NaiveDate;
 }
-  
+
 pub trait MyName {
     fn name(&self) -> MaybeSignal<String>;
 }
-  
+
 pub trait Identify {
     fn identity(&self) -> Identifier;
 }
@@ -118,7 +123,6 @@ pub enum Ending {
 // TODO work out place
 // pub struct Place {}
 
-
 // Samma höst (eller annan upplösning) som ...
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
@@ -126,7 +130,10 @@ pub enum PointInTime {
     Approximated(Approximated),
     // TimeAfter, // duration och PoI
     ChronologicalAge(i8, Identifier), // ålder och person
-    TimeAgo{at: NaiveDate, time: TimeDelta},
+    TimeAgo {
+        at: NaiveDate,
+        time: TimeDelta,
+    },
     Time(NaiveDateTime),
     Day(NaiveDate),
     Month(i32, Month),
@@ -183,7 +190,6 @@ impl PointInTime {
     // fn grade() // and so on
 }
 
-
 // TODO work out proper
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct Approximated {
@@ -237,8 +243,6 @@ impl From<u8> for Month {
         }
     }
 }
-
-
 
 //
 
@@ -319,7 +323,6 @@ impl LevelUp for Timeline {
     }
 }
 
-
 #[derive(Default, Debug, Clone, Copy)]
 pub struct MainCategory {
     id: Identifier,
@@ -346,7 +349,6 @@ impl Identify for MainCategory {
         self.id
     }
 }
-
 
 // TODO Worry later about non-person entities
 #[derive(Default, Debug, Clone)]
@@ -383,5 +385,4 @@ impl MyName for Person {
         self.name.clone().into()
     }
 }
-
 
