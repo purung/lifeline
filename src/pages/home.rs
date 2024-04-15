@@ -26,6 +26,7 @@ pub fn Home() -> impl IntoView {
     let (r_ground, _w_ground) = create_signal(String::from("Ground"));
     let TimelineContext { add_poi, cats, .. } = expect_timeline_context();
     let a_cat = cats.get_untracked().keys().next().unwrap().to_owned();
+    let (search, search_w) = create_signal(false);
 
     let call = Callback::new(move |s| log!("My mood is: {:?}", s));
     use_hotkeys!(("ctrl+m") => move |_| {
@@ -37,13 +38,15 @@ pub fn Home() -> impl IntoView {
         })
     });
     use_hotkeys!(("ctrl+u") => move |_| {
-        add_poi(NonSignalPointOfInterest::new(a_cat.to_owned(), "Korfbajs".to_string()))
+        search_w(true);
     });
     provide_context(input_queue);
     view! {
         <div class="min-h-[100svh] bg-sky-50 grid">
             <Timeline/>
-            <SearchPoi/>
+            <Show when=search>
+                <SearchPoi continue_search=search_w/>
+            </Show>
             <Commands/>
             <Modals/>
         </div>
@@ -51,7 +54,7 @@ pub fn Home() -> impl IntoView {
 }
 
 #[component]
-pub fn SearchPoi() -> impl IntoView {
+pub fn SearchPoi(continue_search: WriteSignal<bool>) -> impl IntoView {
     let TimelineContext { pois, .. } = expect_timeline_context();
     let (term, term_w) = create_signal("".to_string());
     let autocomplete = Signal::derive(move || with!(|pois, term| pois.autocomplete(term)));
@@ -73,11 +76,19 @@ pub fn SearchPoi() -> impl IntoView {
                 .collect_view()
         })
     });
+    use_hotkeys!(("enter") => move |_| {
+        let selected_poi = search.with(|s| s.iter().next().cloned());
+        if let Some(p) = selected_poi {
+            navigate_to_(&p);
+            continue_search.set(false);
+        }
+    });
+    create_effect(move |_| log!("Runnnn"));
     view! {
         <Portal>
             <Dialog id>
                 <div>
-                    <input on:input=handle_input/>
+                    <input autofocus on:input=handle_input/>
                 </div>
                 <div>
                     <ol>{search_results}</ol>
@@ -169,6 +180,14 @@ pub fn Timeline() -> impl IntoView {
     }
 }
 
+fn navigate_to_(poi: &Identifier) {
+    let maybe_el = document().get_element_by_id(&format!("poi-{}", poi.to_string()));
+    let maybe_con = document().get_element_by_id("timeline-container");
+    if let Some((el, con)) = maybe_el.zip(maybe_con) {
+        log!("Scroll! {:?}", el.text_content());
+        center_element_in_container(el, con);
+    }
+}
 fn center_element_in_container(el: Element, con: Element) {
     let el = el.dyn_into::<HtmlElement>().unwrap();
     let con = con.dyn_into::<HtmlElement>().unwrap();
